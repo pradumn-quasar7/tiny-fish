@@ -393,7 +393,10 @@ async function saveSettings(patch) {
 async function refreshState() {
   try { S.state = await api("GET", "/api/state"); }
   catch {
-    if (!S.state) $("#view").innerHTML = `<div class="err-card" style="margin-top:40px"><div class="ico">!</div><div><h3>Can't reach the Sieve server</h3><p>Start it with <span class="mono">python3 server.py</span> in the project folder, then reload this page.</p><button class="btn" onclick="location.reload()">Reload</button></div></div>`;
+    const why = location.protocol === "file:"
+      ? `This page was opened as a file. Run <span class="mono">python3 server.py</span> in the project folder and open the <b>http://localhost:…</b> address it prints instead.`
+      : `Nothing at <span class="mono">${esc(location.host)}</span> answered like Sieve — another app may be using this port. Run <span class="mono">python3 server.py</span> and open the exact address it prints (e.g. <span class="mono">http://localhost:8001</span>).`;
+    if (!S.state) $("#view").innerHTML = `<div class="err-card" style="margin-top:40px"><div class="ico">!</div><div><h3>Can't reach the Sieve server</h3><p>${why}</p><button class="btn" onclick="location.reload()">Reload</button></div></div>`;
     return false;
   }
   return true;
