@@ -859,7 +859,7 @@ class Handler(BaseHTTPRequestHandler):
         u = urllib.parse.urlparse(self.path)
         path, qs = u.path, urllib.parse.parse_qs(u.query)
         if path == "/api/health":
-            return self.send_json(200, {"ok": True, "hasKey": bool(api_key())})
+            return self.send_json(200, {"ok": True, "mode": "local", "hasKey": bool(api_key())})
         if path == "/api/state":
             return self.send_state()
         if path == "/api/wallet":

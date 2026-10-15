@@ -31,6 +31,16 @@ reads it, and hands back JSON you can browse, diff, export, sync and schedule.
 
 Also: ⌘K / `/` command palette, notifications for finished runs, profile with accent colour, `N` for a new extraction.
 
+## Hosted on Vercel
+
+The same app deploys to Vercel as-is (static `public/` + Python functions in `api/`). In hosted mode:
+
+- **Each visitor uses their own TinyFish key.** It's stored only in their browser and sent with their
+  requests through `api/tf.py`, a stateless proxy; nothing is saved on the server.
+- **Extractors, datasets and settings live in the visitor's browser** (localStorage); downloads are made in the browser.
+- Runs use TinyFish's async API and are polled every few seconds, so no function stays open for a whole run.
+- **Schedules, SQLite sync, webhooks and the REST API are local-only** — run `python3 server.py` for those.
+
 ## Data
 
 Everything is stored locally in `./data` (ignored by git):

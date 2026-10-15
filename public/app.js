@@ -72,6 +72,7 @@ function toast(msg, opts = {}) {
 }
 
 async function api(method, path, body) {
+  if (S.cloud) return window.SieveCloud.api(method, path, body || {});
   const res = await fetch(path, { method, headers: body ? { "Content-Type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined });
   let data = null;
   try { data = await res.json(); } catch {}
@@ -346,6 +347,8 @@ function openSheet(run) {
 /* ===================================================================== global actions (data-act) */
 const ACT = {
   "close-overlays": closeOverlays,
+  "copy-code"(el) { copyText(el.parentElement.firstChild.textContent, "Command copied"); },
+  "local-only"() { toast("Database sync and webhooks work when you run Sieve on your computer (python3 server.py)"); },
   palette: openPalette,
   notifs(el) {
     const p = openPanel(el, `<div class="ph"><b>Notifications</b><button data-act="mark-read">Mark all read</button></div><div class="notifs">${notifList()}</div>`);
@@ -739,6 +742,7 @@ const Dataset = {
     ].join("");
     let acts = "";
     if (active) acts = `<button class="btn" data-act="live-log">Live log</button><button class="btn btn-danger" data-act="stop-run">${I.stop()} Stop</button>`;
+    else if (run.status === "completed" && S.cloud) acts = `<button class="btn btn-accent" data-act="export-menu" aria-haspopup="menu">${I.dl()} Export</button>`;
     else if (run.status === "completed") acts = `${sched ? `<a class="btn" href="#/schedules">${I.clock(16)} ${esc(cadence(sched))}</a>` : `<button class="btn" data-act="schedule-daily">${I.clock(16)} Schedule daily</button>`}
       <button class="btn" data-act="copy-api">Copy API call</button>
       <button class="btn btn-accent" data-act="export-menu" aria-haspopup="menu">${I.dl()} Export</button>`;
@@ -793,8 +797,8 @@ const Dataset = {
     return `<section class="dests" aria-label="Destinations" id="dests">
         ${dest("dl-csv", "CSV", "lime", "Download CSV", csvSize)}
         ${dest("dl-json", "{ }", "blue", "JSON / JSONL", run.fields?.length ? "Typed schema" : "Auto-detected keys")}
-        ${dest("sync-db", "DB", "violet", "Sync to database", db ? `Synced ${relTime(db.at)} · SQLite` : `SQLite · ${esc(S.state?.db_path || "data/sieve.db")}`, db ? "done" : "")}
-        ${dest("send-webhook", "↗", "orange", "Webhook", wh ? (wh.ok ? `Sent ${relTime(wh.at)} · ${esc(wh.detail)}` : `Failed · ${esc(wh.detail)}`) : s.webhook_url ? `POST to ${esc(hostOf(s.webhook_url))}${s.webhook_on_run ? " · every run" : ""}` : "Set up a URL first", wh ? (wh.ok ? "done" : "bad") : "")}
+        ${S.cloud ? dest("local-only", "DB", "violet", "Sync to database", "Local app only") : dest("sync-db", "DB", "violet", "Sync to database", db ? `Synced ${relTime(db.at)} · SQLite` : `SQLite · ${esc(S.state?.db_path || "data/sieve.db")}`, db ? "done" : "")}
+        ${S.cloud ? dest("local-only", "↗", "orange", "Webhook", "Local app only") : dest("send-webhook", "↗", "orange", "Webhook", wh ? (wh.ok ? `Sent ${relTime(wh.at)} · ${esc(wh.detail)}` : `Failed · ${esc(wh.detail)}`) : s.webhook_url ? `POST to ${esc(hostOf(s.webhook_url))}${s.webhook_on_run ? " · every run" : ""}` : "Set up a URL first", wh ? (wh.ok ? "done" : "bad") : "")}
       </section>`;
   },
   results(run) { return Dataset.dests(run) + `<section class="rows-panel" aria-label="Rows" id="rowsPanel">${Dataset.rows(run)}</section>`; },
@@ -821,7 +825,7 @@ const Dataset = {
   },
   diff(run, cols) {
     const prevSum = prevRunOf(run);
-    if (!prevSum) return `<div class="panel-empty">This is the first completed run of this extractor, so there's nothing to compare yet.<br>Run it again later — or <a href="#" data-act="schedule-daily">schedule it daily</a> — to see what changed.</div>`;
+    if (!prevSum) return `<div class="panel-empty">This is the first completed run of this extractor, so there's nothing to compare yet.<br>Run it again later${S.cloud ? "" : ` — or <a href="#" data-act="schedule-daily">schedule it daily</a> —`} to see what changed.</div>`;
     const prev = S.runCache[prevSum.id];
     if (!prev) { fetchRun(prevSum.id).then(() => { if (S.ds.tab === "diff") Dataset.redrawRows(); }); return `<div class="panel-empty"><span class="spin"></span></div>`; }
     const { out, keyCol, same } = diffRows(prev.rows || [], run.rows || [], cols);
@@ -934,6 +938,20 @@ const Dataset = {
   },
 };
 function download(fmt) {
+  if (S.cloud) {
+    const run = S.run, rows = run.rows || [];
+    const text = fmt === "csv" ? "\ufeff" + toCsv(run) : fmt === "jsonl" ? rows.map((r) => JSON.stringify(r)).join("\n") + "\n" : JSON.stringify(rows, null, 2);
+    const blob = new Blob([text], { type: { csv: "text/csv", jsonl: "application/x-ndjson", json: "application/json" }[fmt] });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${run.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40)}-run${run.num}.${fmt}`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    window.SieveCloud.recordExport(run.id, fmt, blob.size);
+    toast(`${fmt.toUpperCase()} downloaded`);
+    setTimeout(tick, 300);
+    return;
+  }
   const a = document.createElement("a");
   a.href = `/api/runs/${S.run.id}/export?format=${fmt}`;
   a.download = "";
@@ -1081,7 +1099,7 @@ const Extractors = {
           <label class="rf-pages" style="height:38px">Format<select id="exFormat">${["json", "jsonl", "csv"].map((f) => `<option value="${f}" ${ex.format === f ? "selected" : ""}>${f.toUpperCase()}</option>`).join("")}</select></label>
         </div>
         <div class="inline" style="flex-wrap:wrap">${opt("stealth", "Stealth")}${opt("use_proxy", "Proxy")}${opt("respect_robots", "robots.txt")}</div>
-        <div class="inline" style="justify-content:space-between"><a href="#" data-act="ex-schedule" style="font-size:13px;display:inline-flex;gap:6px;align-items:center">${I.clock(14)} Schedule this extractor</a><button class="btn btn-xs btn-danger" data-act="ex-delete">Delete extractor</button></div>
+        <div class="inline" style="justify-content:space-between">${S.cloud ? "<span></span>" : `<a href="#" data-act="ex-schedule" style="font-size:13px;display:inline-flex;gap:6px;align-items:center">${I.clock(14)} Schedule this extractor</a>`}<button class="btn btn-xs btn-danger" data-act="ex-delete">Delete extractor</button></div>
       </div>
       <div class="card dark">
         <div class="card-head"><h2>Output preview</h2><span class="muted" style="font-size:12px">${esc((ex.format || "json").toUpperCase())}${sample ? " · from test" : " · shape"}</span></div>
@@ -1212,8 +1230,14 @@ function cadence(s) {
   if (s.every === "weekly") return `${WEEKDAYS[+s.weekday || 0]}s at ${s.at}`;
   return `Daily at ${s.at}`;
 }
+const LOCAL_CARD = (what) => `<section class="glass set-card" style="max-width:720px"><h2>${what} run on your own computer</h2>
+  <p class="help" style="margin:0">This hosted copy of Sieve keeps everything in your browser and can't run jobs on its own. Run Sieve locally to get ${what.toLowerCase()}, SQLite sync and webhooks:</p>
+  <pre class="codeblock">git clone https://github.com/pradumn-quasar7/tiny-fish.git
+cd tiny-fish && python3 server.py<button class="btn btn-xs" data-act="copy-code">Copy</button></pre></section>`;
 const Schedules = {
   render() {
+    if (S.cloud) return `${topBar(`<span class="ws">${ws()}</span><span aria-hidden="true">/</span><span class="here">Schedules</span>`)}
+      <div class="page-head"><div class="titles"><h1>Schedules</h1><div class="meta"><span>Local app only</span></div></div></div>${LOCAL_CARD("Schedules")}`;
     const list = S.state.schedules || [], exs = S.state.extractors || [];
     const now = new Date(), at = `${String((now.getHours() + 1) % 24).padStart(2, "0")}:00`;
     const form = S.schedForm && exs.length ? `<div class="form-grid">
@@ -1332,6 +1356,15 @@ const Api = {
       : !w ? `<div><span class="spin"></span></div>`
       : w.available ? `<div class="big-num">${money(w.balance, w.currency)}</div><p class="help">${w.step_rate ? `${money(w.step_rate, w.currency)} per agent step · about ${fmtNum(Math.floor(w.balance / w.step_rate))} steps left` : "Available balance"}</p>`
       : `<p class="help">${w.reason === "legacy" ? "Your account is on TinyFish's credit plan, so the balance isn't available over the API." : "Couldn't load the wallet right now."}</p>`;
+    if (S.cloud) return `${topBar(`<span class="ws">${ws()}</span><span aria-hidden="true">/</span><span class="here">API &amp; webhooks</span>`)}
+      <div class="page-head"><div class="titles"><h1>API &amp; webhooks</h1><div class="meta"><span>Hosted mode — your key and data stay in this browser.</span></div></div></div>
+      <div class="grid-2">
+        <section class="glass set-card"><h2>TinyFish API key</h2>${s.has_key ? `<div class="result-line ok">Connected · key ${esc(s.key_hint)} saved in this browser</div>` : `<div class="result-line bad">Not connected — add your own TinyFish key to start scraping.</div>`}
+          <div class="inline"><input class="input mono" type="password" id="tfKey" placeholder="Paste your TinyFish key" autocomplete="off" aria-label="TinyFish API key" /><button class="btn" data-act="save-key">Save</button></div>
+          <p class="help">Stored only in this browser. It's sent with your own requests through Sieve's Vercel function to TinyFish and never saved on the server. Runs use your TinyFish credits. <a href="https://agent.tinyfish.ai/api-keys" target="_blank" rel="noopener">Get a key ↗</a>${s.has_key ? ` · <a href="#" data-act="remove-key">Remove key</a>` : ""}</p>
+        </section>
+        <section class="glass set-card"><div class="card-head"><h2>Wallet</h2><div class="inline"><button class="btn btn-xs" data-act="wallet-refresh">Refresh</button><a class="btn btn-xs" href="https://agent.tinyfish.ai/wallet" target="_blank" rel="noopener">Add funds ↗</a></div></div>${walletHtml}</section>
+      </div>${LOCAL_CARD("Webhooks, the REST API and schedules")}`;
     return `${topBar(`<span class="ws">${ws()}</span><span aria-hidden="true">/</span><span class="here">API &amp; webhooks</span>`)}
       <div class="page-head"><div class="titles"><h1>API &amp; webhooks</h1><div class="meta"><span>Connect TinyFish, send results to your systems, and drive Sieve from scripts.</span></div></div></div>
       <div class="grid-2">
@@ -1357,7 +1390,7 @@ const Api = {
     "copy-code"(el) { copyText(el.parentElement.firstChild.textContent, "Command copied"); },
     async "save-key"() {
       const v = $("#tfKey").value.trim(); if (!v) return $("#tfKey").focus();
-      try { await saveSettings({ tinyfish_key: v }); await refreshState(); await refreshWallet(true); render(); toast(settings().key_source === "env" ? "Saved — but the key in .env is still used" : "TinyFish connected"); } catch {}
+      try { await saveSettings({ tinyfish_key: v }); await refreshState(); await refreshWallet(true); render(); toast(settings().key_source === "env" ? "Saved — but the key in .env is still used" : "TinyFish connected"); renderShell(); } catch {}
     },
     async "remove-key"() { try { await saveSettings({ tinyfish_key: "" }); await refreshState(); S.wallet = null; render(); toast("Saved key removed"); } catch {} },
     async "wallet-refresh"() { S.wallet = null; render(); await refreshWallet(true); render(); },
@@ -1445,6 +1478,8 @@ function render() {
 
 /* ===================================================================== boot */
 (async function boot() {
+  try { const h = await fetch("/api/health").then((r) => r.json()); S.cloud = h.mode === "cloud" && !!window.SieveCloud; } catch { S.cloud = false; }
+  document.body.classList.toggle("cloud", S.cloud);
   const ok = await refreshState();
   if (!ok) return;
   setAccent(settings().accent || ACCENTS[0]);
