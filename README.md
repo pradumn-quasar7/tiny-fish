@@ -1,37 +1,53 @@
-# 🛒 Flipkart Scout
+# ◼︎ Sieve — any website, as clean data
 
-An AI web scraper for Flipkart, powered by the [TinyFish Web Agent API](https://docs.tinyfish.ai).
-A real cloud browser opens Flipkart, reads the page, and returns clean product data.
-You can watch it work live, then filter, compare and export the results.
+Paste a URL, describe what you need, and Sieve returns structured rows — no selectors required.
+A real cloud browser from the [TinyFish Web Agent API](https://docs.tinyfish.ai) opens the page,
+reads it, and hands back JSON you can browse, diff, export, sync and schedule.
 
 ## Run
 
-1. Copy `.env.example` to `.env` and paste your TinyFish API key (get one at https://agent.tinyfish.ai/api-keys).
-   You can also paste the key in the app under ⚙ Settings.
+1. Put your TinyFish key in `.env` (get one at https://agent.tinyfish.ai/api-keys):
+   ```
+   TINYFISH_API_KEY=your_key_here
+   ```
+   Or paste it later in the app under **API & webhooks**.
 2. Start the server (Python 3.8+, standard library only, nothing to install):
-
    ```bash
    python3 server.py
    ```
+3. Open the address it prints (it starts at port 8000 and moves up if that port is busy).
 
-3. Open http://localhost:8000
+## What's in the app
 
-## Features
+| Screen | What it does |
+|---|---|
+| **Workspace** | URL + "what should we extract?", Page / Crawl / Sitemap mode, stealth, proxy and robots.txt switches, output format, presets, live stats and runs |
+| **Extractors** (schema builder) | Name typed fields, test on 5 rows with the live browser, see each field outlined on result cards, detect pagination, autosave, Save & run |
+| **Datasets** | Every run with live progress, log and browser view; Table / JSON / Diff-vs-previous; CSV, JSON, JSONL download; sync to SQLite; webhook; schedule daily; copy API call |
+| **Schedules** | Hourly, daily or weekly runs of any extractor, pause/resume, run now (runs while the server is on) |
+| **Proxies** | Defaults for stealth, proxy country (US, GB, CA, DE, FR, JP, AU), auto-retry of blocked runs, robots.txt, and a robots.txt checker |
+| **API & webhooks** | TinyFish key, wallet balance, webhook URL + test, copy-ready `curl` commands for the local REST API |
+| **Phone** | Run monitor with progress ring, live log, stop, alerts and bottom navigation |
 
-- Search by keywords or paste any Flipkart search, category or product URL
-- Filters: sort, price range, minimum rating, number of products (1–40), extra instructions for the agent
-- Live run view: step-by-step timeline, embedded live browser stream, timer, Stop button
-- Results: stat tiles, "Best value" pick, grid and sortable table views, filter-as-you-type
-- Export to CSV (opens in Excel) or JSON, or copy to the clipboard
-- History of recent scrapes, light/dark theme, keyboard shortcuts (`/` to search, `H` for history, `Esc` to close)
-- Stealth browser (on by default) and an optional proxy country (US, GB, CA, DE, FR, JP, AU) if Flipkart blocks the agent
+Also: ⌘K / `/` command palette, notifications for finished runs, profile with accent colour, `N` for a new extraction.
 
-## How it works
+## Data
 
-`server.py` builds a Flipkart URL and a structured extraction goal, then calls
-`POST https://agent.tinyfish.ai/v1/automation/run-sse`. It streams the agent's events
-(`STARTED`, `STREAMING_URL`, `PROGRESS`, `COMPLETE`) to the browser and turns the final
-result into a consistent product schema. Your API key stays on the server.
+Everything is stored locally in `./data` (ignored by git):
+`store.json` (extractors, schedules, settings), `runs/*.json` (one file per run) and `sieve.db` (SQLite, filled by "Sync to database").
 
-Each run uses TinyFish credits. Please respect Flipkart's Terms of Use and scrape responsibly.
-# tiny-fish
+## Local REST API
+
+```bash
+curl -X POST http://localhost:8000/api/runs -H "Content-Type: application/json" \
+  -d '{"url": "https://books.toscrape.com/", "prompt": "Title and price of every book"}'
+curl http://localhost:8000/api/runs/<run_id>
+curl -OJ "http://localhost:8000/api/runs/<run_id>/export?format=csv"
+```
+
+## Notes
+
+- Each run uses TinyFish credits (the sidebar shows your wallet balance).
+- "Respect robots.txt" is on by default. Some sites disallow automated access to certain pages —
+  Flipkart's robots.txt, for example, disallows `/search?` pages. Only turn the check off when you have permission.
+- The previous "Scout for Flipkart" interface is kept in `archive/scout-ui/`.

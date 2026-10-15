@@ -2,241 +2,44 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Flipkart Scout</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Sieve — Web Scraper</title>
+<meta name="description" content="Paste a URL, describe what you need, and Sieve returns structured rows. Powered by TinyFish." />
+<meta name="theme-color" content="#0A0C11" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛒</text></svg>" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'><rect width='26' height='26' rx='8' fill='%230A0C11'/><rect x='1' y='1' width='24' height='24' rx='8' fill='none' stroke='%23C8F169' stroke-width='1.6'/><path d='M7 9h12M9 13h8M11 17h4' stroke='%23C8F169' stroke-width='1.6' stroke-linecap='round'/></svg>" />
 <link rel="stylesheet" href="/styles.css" />
 </head>
-<body>
-<div class="bg-glow" aria-hidden="true"></div>
+<body data-view="workspace">
+<div class="blobs" aria-hidden="true"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
 
-<header class="topbar">
-  <div class="brand">
-    <div class="logo">🛒</div>
-    <div>
-      <div class="brand-name">Flipkart Scout</div>
-      <div class="brand-sub">AI web scraper · powered by TinyFish</div>
-    </div>
-  </div>
-  <div class="top-actions">
-    <span id="keyPill" class="pill pill-muted" title="TinyFish API key status"><span class="dot"></span><span id="keyPillText">Checking key…</span></span>
-    <button class="icon-btn" id="historyBtn" title="History (H)" aria-label="History">
-      <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 3"/></svg>
-    </button>
-    <button class="icon-btn" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">
-      <svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
-    </button>
-    <button class="icon-btn" id="settingsBtn" title="Settings" aria-label="Settings">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
-    </button>
-  </div>
-</header>
-
-<main class="wrap">
-  <!-- Search hero -->
-  <section class="hero" id="hero">
-    <h1>Scrape any Flipkart search<br /><span class="grad">in plain English.</span></h1>
-    <p class="lead">Type a product or paste a Flipkart URL. A real browser agent opens the page, reads it, and hands you clean, exportable data.</p>
-
-    <form id="searchForm" class="search-card" autocomplete="off">
-      <div class="search-row">
-        <svg class="search-ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <input id="query" type="text" placeholder="e.g. iPhone 16, running shoes under 3000, or a flipkart.com URL" aria-label="Search query or URL" />
-        <kbd class="kbd-hint">/</kbd>
-        <button type="submit" class="btn btn-primary" id="goBtn">
-          <span class="btn-label">Scrape</span>
-          <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-        </button>
-      </div>
-
-      <div class="chips" id="chips">
-        <button type="button" class="chip">iPhone 16</button>
-        <button type="button" class="chip">Gaming laptop</button>
-        <button type="button" class="chip">Bluetooth earbuds</button>
-        <button type="button" class="chip">Smartwatch</button>
-        <button type="button" class="chip">Air fryer</button>
-        <button type="button" class="chip">Men's sneakers</button>
-      </div>
-
-      <div class="filters">
-        <label class="field">
-          <span>Sort by</span>
-          <select id="sort">
-            <option value="relevance">Relevance</option>
-            <option value="popularity">Popularity</option>
-            <option value="price_asc">Price: low → high</option>
-            <option value="price_desc">Price: high → low</option>
-            <option value="newest">Newest first</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>Min price (₹)</span>
-          <input id="minPrice" type="number" min="0" step="100" placeholder="Any" />
-        </label>
-        <label class="field">
-          <span>Max price (₹)</span>
-          <input id="maxPrice" type="number" min="0" step="100" placeholder="Any" />
-        </label>
-        <label class="field">
-          <span>Min rating</span>
-          <select id="minRating">
-            <option value="">Any</option>
-            <option value="3">3★ &amp; up</option>
-            <option value="3.5">3.5★ &amp; up</option>
-            <option value="4">4★ &amp; up</option>
-            <option value="4.5">4.5★ &amp; up</option>
-          </select>
-        </label>
-        <label class="field field-range">
-          <span>Products <b id="limitVal">10</b></span>
-          <input id="limit" type="range" min="1" max="40" value="10" />
-        </label>
-      </div>
-
-      <details class="advanced">
-        <summary>Advanced options</summary>
-        <div class="adv-grid">
-          <label class="toggle"><input type="checkbox" id="stealth" checked /><span class="track"></span><span>Stealth browser <small>better against bot checks</small></span></label>
-          <label class="field">
-            <span>Proxy country <small style="font-weight:400;color:var(--muted)">(only if Flipkart blocks the agent)</small></span>
-            <select id="proxy">
-              <option value="">No proxy</option>
-              <option value="US">United States</option>
-              <option value="GB">United Kingdom</option>
-              <option value="CA">Canada</option>
-              <option value="DE">Germany</option>
-              <option value="FR">France</option>
-              <option value="JP">Japan</option>
-              <option value="AU">Australia</option>
-            </select>
-          </label>
-          <label class="field field-wide">
-            <span>Extra instructions for the agent</span>
-            <input id="notes" type="text" placeholder="e.g. skip sponsored listings, only Samsung brand" />
-          </label>
-        </div>
-      </details>
-    </form>
-  </section>
-
-  <!-- Live run -->
-  <section class="run hidden" id="runPanel" aria-live="polite">
-    <div class="run-head">
-      <div class="run-title">
-        <div class="spinner" id="runSpinner"></div>
-        <div>
-          <div class="run-status" id="runStatus">Starting agent…</div>
-          <div class="run-meta"><span id="runTimer">0.0s</span> · <span id="runSteps">0 steps</span> · <a id="runTarget" target="_blank" rel="noopener" class="muted-link"></a></div>
-        </div>
-      </div>
-      <div class="run-actions">
-        <a id="runLink" class="btn btn-ghost hidden" target="_blank" rel="noopener">Open run ↗</a>
-        <button class="btn btn-danger" id="cancelBtn">Stop</button>
-      </div>
-    </div>
-    <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
-    <div class="run-body">
-      <ol class="timeline" id="timeline"></ol>
-      <div class="live">
-        <div class="live-head">
-          <span><span class="rec"></span> Live browser</span>
-          <a id="liveOpen" class="muted-link hidden" target="_blank" rel="noopener">Pop out ↗</a>
-        </div>
-        <div class="live-frame" id="liveFrame">
-          <div class="live-placeholder">
-            <div class="browser-dots"><i></i><i></i><i></i></div>
-            Waiting for browser stream…
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Results -->
-  <section class="results hidden" id="results">
-    <div class="stats" id="stats"></div>
-
-    <div class="toolbar">
-      <div class="toolbar-left">
-        <h2 id="resultsTitle">Results</h2>
-        <div class="search-mini">
-          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          <input id="filterText" type="text" placeholder="Filter results…" />
-        </div>
-        <select id="localSort" class="select-sm" aria-label="Sort results">
-          <option value="">Original order</option>
-          <option value="price_asc">Price ↑</option>
-          <option value="price_desc">Price ↓</option>
-          <option value="rating">Top rated</option>
-          <option value="discount">Biggest discount</option>
-          <option value="reviews">Most ratings</option>
-        </select>
-      </div>
-      <div class="toolbar-right">
-        <div class="seg" role="tablist">
-          <button class="seg-btn active" data-view="grid" title="Grid view">
-            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
-          </button>
-          <button class="seg-btn" data-view="table" title="Table view">
-            <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
-          </button>
-        </div>
-        <button class="btn btn-ghost btn-sm" id="copyBtn">Copy JSON</button>
-        <button class="btn btn-ghost btn-sm" id="jsonBtn">⬇ JSON</button>
-        <button class="btn btn-accent btn-sm" id="csvBtn">⬇ CSV</button>
-      </div>
-    </div>
-
-    <div class="notice hidden" id="notice"></div>
-    <div class="grid" id="grid"></div>
-    <div class="table-wrap hidden" id="tableWrap"><table id="table"></table></div>
-    <details class="raw hidden" id="rawBox"><summary>Raw agent output</summary><pre id="rawPre"></pre></details>
-  </section>
-
-  <!-- Empty / onboarding -->
-  <section class="how" id="how">
-    <div class="how-card"><div class="how-n">1</div><h3>Describe it</h3><p>Search words, a category, or any Flipkart link. Add filters if you like.</p></div>
-    <div class="how-card"><div class="how-n">2</div><h3>Watch the agent</h3><p>TinyFish drives a real cloud browser. You see every step and the live screen.</p></div>
-    <div class="how-card"><div class="how-n">3</div><h3>Export</h3><p>Sort, filter and compare in the grid, then download CSV or JSON.</p></div>
-  </section>
-</main>
-
-<!-- History drawer -->
-<aside class="drawer" id="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <h3>Recent scrapes</h3>
-    <button class="icon-btn" data-close="drawer" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-  </div>
-  <div id="historyList" class="history-list"></div>
-  <button class="btn btn-ghost btn-sm" id="clearHistory">Clear history</button>
-</aside>
-
-<!-- Settings modal -->
-<div class="modal" id="settings" aria-hidden="true">
-  <div class="modal-card" role="dialog" aria-labelledby="setTitle">
-    <div class="drawer-head">
-      <h3 id="setTitle">Settings</h3>
-      <button class="icon-btn" data-close="settings" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-    </div>
-    <label class="field field-wide">
-      <span>TinyFish API key</span>
-      <div class="key-row">
-        <input id="apiKey" type="password" placeholder="sk-tinyfish-…" autocomplete="off" />
-        <button class="btn btn-ghost btn-sm" type="button" id="toggleKey">Show</button>
-      </div>
-    </label>
-    <p class="hint">Optional if <code>TINYFISH_API_KEY</code> is in your <code>.env</code>. A key saved here stays in this browser and is only sent to your local server. Get one at <a href="https://agent.tinyfish.ai/api-keys" target="_blank" rel="noopener">agent.tinyfish.ai/api-keys</a>.</p>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" id="clearKey">Remove key</button>
-      <button class="btn btn-primary" id="saveKey">Save</button>
-    </div>
-  </div>
+<div class="app">
+  <nav class="side" id="side" aria-label="Primary"></nav>
+  <main class="main" id="main">
+    <div id="view"></div>
+  </main>
 </div>
 
+<nav class="bottom-nav" id="bottomNav" aria-label="Primary"></nav>
+
+<!-- overlays -->
 <div class="scrim" id="scrim"></div>
-<div class="toasts" id="toasts"></div>
+<div class="palette" id="palette" role="dialog" aria-label="Search and commands">
+  <div class="p-in">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <input id="paletteInput" type="text" placeholder="Search runs, datasets, extractors — or type a command" autocomplete="off" aria-label="Search" />
+    <span class="kbd">esc</span>
+  </div>
+  <ul id="paletteList" role="listbox"></ul>
+</div>
+<div class="sheet" id="sheet" role="dialog" aria-label="Live log">
+  <div class="sh-head"><b id="sheetTitle">Live log</b><button class="btn btn-sm" data-act="close-overlays">Close</button></div>
+  <div class="sh-body" id="sheetBody"></div>
+</div>
+<div id="popHost"></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
 
 <script src="/app.js"></script>
 </body>
