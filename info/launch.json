@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "flipkart-scout", "runtimeExecutable": "python3", "runtimeArgs": ["server.py"], "port": 8000, "autoPort": true }
+  ]
+}
